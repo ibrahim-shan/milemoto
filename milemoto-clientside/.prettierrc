@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "embeddedLanguageFormatting": "auto",
+  "quoteProps": "as-needed",
+  "jsxSingleQuote": false,
+  "singleAttributePerLine": true,
+
+  "plugins": [
+    "@ianvs/prettier-plugin-sort-imports",
+    "prettier-plugin-packagejson",
+    "prettier-plugin-tailwindcss"
+  ],
+
+  "tailwindConfig": "tailwind.config.ts",
+
+  "importOrder": [
+    "<BUILTIN_MODULES>",
+    "",
+    "^react$",
+    "^react-(dom|router)(/.*)?$",
+    "^next(/.*)?$",
+    "",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^@/(.*)$",
+    "^~/(.*)$",
+    "^(@app|@core|@server|@utils|@lib|@components|@hooks|@styles)(/.*)?$",
+    "",
+    "^\\u0000",
+    "",
+    "^\\.\\.(?!/?$)",
+    "^\\./(?=.*/)(?!/?$)",
+    "^\\./?$",
+    "",
+    "\\.(css|scss|sass)$"
+  ],
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
+  "importOrderCaseSensitive": false
+}

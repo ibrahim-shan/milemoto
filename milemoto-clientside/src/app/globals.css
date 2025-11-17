@@ -1,0 +1,277 @@
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-manrope);
+  --font-heading: var(--font-sora);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* Brand base tokens (light) */
+  --radius: 0.625rem;
+  --brand-primary: #155eef;
+  --brand-primary-shade: #0f4fd8;
+  --brand-primary-tint: #e6eeff;
+  --accent-orange: #ff6a00;
+  --accent-orange-tint: #ffe8d6;
+  --ink: #111827;
+  --ink-muted: #374151;
+  --surface: #f7f8fa;
+  --surface-elevated: #ffffff;
+  --border-color: #e5e7eb;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #dc2626;
+  --info: #0ea5e9;
+  --steel: #c7cdd3;
+  --dark-steel: #6b7280;
+
+  /* Tailwind token mappings (light) */
+  --background: #f7f8fa;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #155eef;
+  --primary-foreground: #ffffff;
+  --secondary: #e5e7eb;
+  --secondary-foreground: #111827;
+  --muted: #e5e7eb;
+  --muted-foreground: #374151;
+  --accent: #ffe8d6;
+  --accent-foreground: #5a2a00;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #155eef;
+  --chart-1: #155eef;
+  --chart-2: #0ea5e9;
+  --chart-3: #16a34a;
+  --chart-4: #f59e0b;
+  --chart-5: #dc2626;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #0f4fd8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e5e7eb;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #155eef;
+}
+
+.dark {
+  /* Dark theme tokens */
+
+  --brand-primary: #155eef;
+  --primary-hover: #2a6bff;
+  --primary-tint-dark: #173b8f;
+  --accent-orange: #ff6a00;
+  --accent-orange-hover: #ff7d21;
+  --accent-orange-tint: #5a2a00;
+  --surface-dark: #121212;
+  --surface-elevated-dark: #111827;
+  --surface-card-dark: #0e0e0e;
+  --ink-light: #e5e7eb;
+  --ink-muted-light: #c7cdd3;
+  --border-dark: #2d3440;
+  --steel-dark: #6b7280;
+  --dark-steel-deeper: #374151;
+
+  --background: #0b1220;
+  --foreground: #e5e7eb;
+  --card: #111827;
+  --card-foreground: #e5e7eb;
+  --popover: #111827;
+  --popover-foreground: #e5e7eb;
+  --primary: #155eef;
+  --primary-foreground: #ffffff;
+  --secondary: #2d3440;
+  --secondary-foreground: #e5e7eb;
+  --muted: #2d3440;
+  --muted-foreground: #c7cdd3;
+  --accent: #5a2a00;
+  --accent-foreground: #ffe8d6;
+  --destructive: #dc2626;
+  --border: #2d3440;
+  --input: #2d3440;
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+/* put this AFTER your current @layer base {...} block */
+@layer base {
+  button,
+  [role='button'],
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'] {
+    @apply cursor-pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'],
+  input:disabled {
+    @apply cursor-not-allowed;
+  }
+}
+
+html {
+  font-family:
+    var(--font-sans),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
+    'Noto Sans',
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol';
+}
+h1,
+h2,
+h3 {
+  font-family:
+    var(--font-heading),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
+    'Noto Sans',
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol';
+  letter-spacing: -0.01em; /* Sora tracking for large headings */
+  line-height: 1.15; /* within 1.1–1.2 */
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family:
+    var(--font-sans),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
+    'Noto Sans',
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol';
+  font-variant-numeric: tabular-nums; /* prices, tables */
+  line-height: 1.6; /* within 1.5–1.7 */
+  font-size: 16px; /* min body size */
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* put this near the bottom of globals.css */
+
+
+@layer components {
+  /* container */
+  .otp-input-container {
+    @apply mx-auto mt-4 flex justify-between gap-2;
+    max-width: 21rem; /* instead of nonstandard max-w-84 */
+  }
+
+  /* base box */
+  .otp-input-box {
+    @apply border-border bg-background text-foreground inline-flex h-12 w-12 items-center justify-center rounded-xl border text-center text-xl transition-all duration-150 ease-in-out;
+    font-family:
+      var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace;
+  }
+
+  .otp-input-box:focus {
+    @apply border-primary ring-ring ring-2;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
+/* put AFTER the @layer so it wins over inline styles from react-otp-input */
+.otp-input-container .otp-input-box {
+  width: 3rem !important; /* 48px */
+  height: 3rem !important; /* 48px */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

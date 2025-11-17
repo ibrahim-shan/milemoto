@@ -1,0 +1,12 @@
+{
+  "name": "milemoto-monorepo",
+  "private": true,
+  "workspaces": [
+    "milemoto-clientside",
+    "milemoto-serverside",
+    "packages/types"
+  ],
+  "devDependencies": {
+    "eslint-plugin-jsx-a11y": "^6.10.2"
+  }
+}

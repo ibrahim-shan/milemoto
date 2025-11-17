@@ -1,0 +1,230 @@
+@host = http://localhost:4000
+@api = {{host}}/api
+@refreshCookieName = mm_refresh
+@trustedCookieName = mm_trusted
+
+# Update these to match an existing, email-verified account in your dev DB
+@existingEmail = admin@gmail.com
+@existingPassword = 12345678
+@newPassword = 123456789
+
+# Tokens captured at runtime (populated by scripts below)
+@accessToken = 
+@refreshCookie = 
+@trustedCookie = 
+@userId = 
+
+# Dynamic data for on-demand registrations (email must be unique)
+@newUserEmail = auth-run-{{$guid}}@milemoto.dev
+@newUserPassword = Passwrd@123
+@newUserPhone = +1555000{{$randomInt 1000 9999}}
+
+# Paste tokens captured from emails (optional helpers)
+@verificationToken = PASTE_VERIFICATION_TOKEN_HERE
+@resetToken = PASTE_PASSWORD_RESET_TOKEN_HERE
+
+###
+# Health check (sanity)
+GET {{api}}/v1/health
+
+###
+# Register a brand new account (will require email verification before login)
+# @name RegisterNewAccount
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Auth Runner {{$timestamp}}",
+  "email": "{{newUserEmail}}",
+  "phone": "{{newUserPhone}}",
+  "password": "{{newUserPassword}}",
+  "remember": false
+}
+
+###
+# Login with an existing, verified account
+# @name LoginExistingUser
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{existingEmail}}",
+  "password": "{{existingPassword}}",
+  "remember": true
+}
+
+> {% 
+  const body = response.body || {};
+  if (body.accessToken) {
+    client.global.set('accessToken', body.accessToken);
+  }
+  if (body.user && body.user.id) {
+    client.global.set('userId', String(body.user.id));
+  }
+  const cookies = response.headers['set-cookie'];
+  const list = Array.isArray(cookies) ? cookies : (cookies ? [cookies] : []);
+  const refreshPrefix = '{{refreshCookieName}}=';
+  const trustedPrefix = '{{trustedCookieName}}=';
+  for (const cookie of list) {
+    if (cookie.startsWith(refreshPrefix)) {
+      client.global.set('refreshCookie', cookie.split(';')[0]);
+    }
+    if (cookie.startsWith(trustedPrefix)) {
+      client.global.set('trustedCookie', cookie.split(';')[0]);
+    }
+  }
+%}
+
+###
+# Fetch the authenticated profile (/api/v1/auth/me)
+GET {{api}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+###
+# Update profile (name / phone)
+POST {{api}}/auth/me/update
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Updated Runner {{$timestamp}}",
+  "phone": "+1555444{{$randomInt 1000 9999}}"
+}
+
+###
+# Change password for the logged-in user
+POST {{api}}/auth/change-password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "oldPassword": "{{existingPassword}}",
+  "newPassword": "{{newPassword}}"
+}
+
+###
+# Refresh the session using the stored cookie
+# @name RefreshSession
+POST {{api}}/auth/refresh
+Cookie: {{refreshCookie}}
+
+> {% 
+  const body = response.body || {};
+  if (body.accessToken) {
+    client.global.set('accessToken', body.accessToken);
+  }
+  const cookies = response.headers['set-cookie'];
+  const list = Array.isArray(cookies) ? cookies : (cookies ? [cookies] : []);
+  const refreshPrefix = '{{refreshCookieName}}=';
+  for (const cookie of list) {
+    if (cookie.startsWith(refreshPrefix)) {
+      client.global.set('refreshCookie', cookie.split(';')[0]);
+    }
+  }
+%}
+
+###
+# List trusted devices for the current user
+GET {{api}}/auth/trusted-devices
+Authorization: Bearer {{accessToken}}
+Cookie: {{trustedCookie}}
+
+###
+# Revoke the current trusted device (if cookie present)
+POST {{api}}/auth/trusted-devices/untrust-current
+Authorization: Bearer {{accessToken}}
+Cookie: {{trustedCookie}}
+
+###
+# Logout current session
+POST {{api}}/auth/logout
+Cookie: {{refreshCookie}}
+
+###
+# Login again to obtain fresh cookies for the remaining tests
+# @name LoginAgain
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{existingEmail}}",
+  "password": "{{newPassword}}",
+  "remember": false
+}
+
+> {% 
+  const body = response.body || {};
+  if (body.accessToken) {
+    client.global.set('accessToken', body.accessToken);
+  }
+  if (body.user && body.user.id) {
+    client.global.set('userId', String(body.user.id));
+  }
+  const cookies = response.headers['set-cookie'];
+  const list = Array.isArray(cookies) ? cookies : (cookies ? [cookies] : []);
+  const refreshPrefix = '{{refreshCookieName}}=';
+  for (const cookie of list) {
+    if (cookie.startsWith(refreshPrefix)) {
+      client.global.set('refreshCookie', cookie.split(';')[0]);
+    }
+  }
+%}
+
+###
+# Logout all sessions (revokes refresh + trusted device cookies)
+POST {{api}}/auth/logout-all
+Authorization: Bearer {{accessToken}}
+Cookie: {{refreshCookie}}
+
+###
+# Request password-reset email (rate limited)
+POST {{api}}/auth/forgot
+Content-Type: application/json
+
+{
+  "email": "{{existingEmail}}"
+}
+
+###
+# Reset password with a token copied from email (optional)
+POST {{api}}/auth/reset
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}",
+  "password": "{{newPassword}}"
+}
+
+###
+# Resend verification email for the most recently registered user
+POST {{api}}/auth/verify-email/resend
+Content-Type: application/json
+
+{
+  "email": "{{newUserEmail}}"
+}
+
+###
+# Manually verify email using a token (optional)
+POST {{api}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "token": "{{verificationToken}}"
+}
+
+###
+# Begin MFA setup (requires auth and verified email)
+POST {{api}}/auth/mfa/setup/start
+Authorization: Bearer {{accessToken}}
+
+###
+# Disable MFA using password + code placeholder
+POST {{api}}/auth/mfa/disable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "password": "{{newPassword}}",
+  "code": "000000"
+}
