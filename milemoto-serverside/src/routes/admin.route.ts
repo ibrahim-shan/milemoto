@@ -5,12 +5,20 @@ import { persistRuntimeFlag, runtimeFlags } from '../config/runtime.js';
 import { logger } from '../utils/logger.js';
 import { locationAdmin } from './admin/location.route.js';
 import { companyAdmin } from './admin/company.route.js';
+import { unitAdmin } from './admin/unit.route.js';
+import { taxAdmin } from './admin/tax.route.js';
+import { currencyAdmin } from './admin/currency.route.js';
+import { shippingAdmin } from './admin/shipping.route.js';
 
 export const admin = Router();
 admin.use(requireAuth, requireRole('admin')); // all routes below require admin
 
 admin.use('/locations', locationAdmin);
 admin.use('/company', companyAdmin);
+admin.use('/units', unitAdmin);
+admin.use('/taxes', taxAdmin);
+admin.use('/currencies', currencyAdmin);
+admin.use('/shipping', shippingAdmin);
 
 admin.get('/ping', (_req, res) => {
   res.json({ ok: true, scope: 'admin' });

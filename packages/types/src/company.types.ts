@@ -9,12 +9,13 @@ export const CompanyProfileInput = z.object({
   city: z.string().min(1).max(191).nullish(),
   state: z.string().min(1).max(191).nullish(),
   zip: z.string().min(1).max(32).nullish(),
-  countryId: z.string().nullable(),
+  countryId: z.coerce.number().int().positive().nullish(),
   latitude: z.number().finite().nullish(),
   longitude: z.number().finite().nullish(),
 });
 
 export type CompanyProfileInputDto = z.infer<typeof CompanyProfileInput>;
+
 
 export type CompanyProfileDto = CompanyProfileInputDto & {
   id: number;

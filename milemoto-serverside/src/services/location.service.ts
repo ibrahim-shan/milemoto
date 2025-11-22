@@ -144,6 +144,20 @@ export async function updateCountry(id: number, body: UpdateCountryDto) {
 
 export async function deleteCountry(id: number) {
   try {
+    // Check if country is used in shipping area rates
+    const [shippingRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM shipping_area_rates WHERE country_id = ? LIMIT 1',
+      [id]
+    );
+
+    if (shippingRows.length > 0) {
+      throw httpError(
+        400,
+        'DeleteFailed',
+        'Cannot delete country. It is being used in shipping area rates.'
+      );
+    }
+
     const [result] = await pool.query<ResultSetHeader>('DELETE FROM countries WHERE id = ?', [id]);
     if (result.affectedRows === 0) {
       throw httpError(404, 'NotFound', 'Country not found');
@@ -239,23 +253,34 @@ export async function createState(data: CreateStateDto) {
   }
 }
 
-export async function listStates(params: ListQueryDto) {
-  const { search, page, limit } = params;
+export async function listStates(params: ListQueryDto & { countryId?: number | undefined }) {
+  const { search, page, limit, countryId } = params;
   const offset = (page - 1) * limit;
   const queryParams: (string | number)[] = [];
   const whereClauses = [];
+
+  if (countryId) {
+    // Check if number is present
+    whereClauses.push('c.id = ?');
+    // We pass the number directly to the database driver here
+    queryParams.push(countryId);
+  }
   if (search) {
     const searchPattern = `%${search}%`;
     whereClauses.push('(s.name LIKE ? OR c.name LIKE ?)');
     queryParams.push(searchPattern, searchPattern);
   }
+
   const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
   const baseQuery = 'FROM states s JOIN countries c ON s.country_id = c.id';
 
+  const countParams = [...queryParams];
+
   const [countRows] = await pool.query<RowDataPacket[]>(
     `SELECT COUNT(s.id) as totalCount ${baseQuery} ${whereSql}`,
-    queryParams
+    countParams
   );
+
   const totalCount = countRows[0]?.totalCount || 0;
 
   queryParams.push(limit, offset);
@@ -365,6 +390,20 @@ export async function updateState(id: number, body: UpdateStateDto) {
 
 export async function deleteState(id: number) {
   try {
+    // Check if state is used in shipping area rates
+    const [shippingRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM shipping_area_rates WHERE state_id = ? LIMIT 1',
+      [id]
+    );
+
+    if (shippingRows.length > 0) {
+      throw httpError(
+        400,
+        'DeleteFailed',
+        'Cannot delete state. It is being used in shipping area rates.'
+      );
+    }
+
     const [result] = await pool.query<ResultSetHeader>('DELETE FROM states WHERE id = ?', [id]);
     if (result.affectedRows === 0) {
       throw httpError(404, 'NotFound', 'State not found');
@@ -388,7 +427,7 @@ export async function deleteState(id: number) {
 
 export async function listAllStates() {
   const [items] = await pool.query<RowDataPacket[]>(
-    "SELECT id, name, status, status_effective FROM states WHERE status_effective = 'active' ORDER BY name ASC"
+    "SELECT id, name, country_id, status, status_effective FROM states WHERE status_effective = 'active' ORDER BY name ASC"
   );
   return items;
 }
@@ -516,11 +555,33 @@ export async function createCity(data: CreateCityDto) {
   }
 }
 
-export async function listCities(params: ListQueryDto) {
-  const { search, page, limit } = params;
+export async function listAllCities(stateId?: number) {
+  let sql =
+    "SELECT id, name, state_id, status, status_effective FROM cities WHERE status_effective = 'active'";
+  const params: unknown[] = [];
+
+  if (stateId) {
+    sql += ' AND state_id = ?';
+    params.push(stateId);
+  }
+
+  sql += ' ORDER BY name ASC';
+
+  const [items] = await pool.query<RowDataPacket[]>(sql, params);
+  return items;
+}
+
+export async function listCities(params: ListQueryDto & { stateId?: number | undefined }) {
+  const { search, page, limit, stateId } = params;
   const offset = (page - 1) * limit;
   const queryParams: (string | number)[] = [];
   const whereClauses = [];
+
+  if (stateId) {
+    whereClauses.push('s.id = ?');
+    queryParams.push(stateId);
+  }
+
   if (search) {
     const searchPattern = `%${search}%`;
     whereClauses.push('(ci.name LIKE ? OR s.name LIKE ? OR co.name LIKE ?)');
@@ -533,10 +594,13 @@ export async function listCities(params: ListQueryDto) {
        JOIN countries co ON s.country_id = co.id
     `;
 
+  const countParams = [...queryParams];
+
   const [countRows] = await pool.query<RowDataPacket[]>(
     `SELECT COUNT(ci.id) as totalCount ${baseQuery} ${whereSql}`,
-    queryParams
+    countParams
   );
+
   const totalCount = countRows[0]?.totalCount || 0;
 
   queryParams.push(limit, offset);
@@ -661,9 +725,27 @@ export async function updateCity(id: number, body: UpdateCityDto) {
 }
 
 export async function deleteCity(id: number) {
-  const [result] = await pool.query<ResultSetHeader>('DELETE FROM cities WHERE id = ?', [id]);
-  if (result.affectedRows === 0) {
-    throw httpError(404, 'NotFound', 'City not found');
+  try {
+    // Check if city is used in shipping area rates
+    const [shippingRows] = await pool.query<RowDataPacket[]>(
+      'SELECT id FROM shipping_area_rates WHERE city_id = ? LIMIT 1',
+      [id]
+    );
+
+    if (shippingRows.length > 0) {
+      throw httpError(
+        400,
+        'DeleteFailed',
+        'Cannot delete city. It is being used in shipping area rates.'
+      );
+    }
+
+    const [result] = await pool.query<ResultSetHeader>('DELETE FROM cities WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      throw httpError(404, 'NotFound', 'City not found');
+    }
+  } catch (err) {
+    throw err;
   }
 }
 

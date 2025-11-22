@@ -95,7 +95,10 @@ export async function validateTrustedCookie(
 ): Promise<boolean> {
   try {
     const raw = String(req.cookies?.mm_trusted || '');
-    if (!raw) return false;
+    if (!raw) {
+      logger.info({ userId, reason: 'no_cookie' }, 'Trusted device validation: no cookie');
+      return false;
+    }
 
     const [id, token] = raw.split('.');
     if (id && token) {
@@ -104,11 +107,41 @@ export async function validateTrustedCookie(
         [id]
       );
       const rec = rows[0];
-      if (!rec) return false;
-      if (String(rec.user_id) !== String(userId)) return false;
-      if (rec.revoked_at) return false;
-      if (new Date(rec.expires_at) <= new Date()) return false;
-      if (sha256(token) !== rec.token_hash) return false;
+      if (!rec) {
+        logger.info(
+          { userId, deviceId: id, reason: 'device_not_found' },
+          'Trusted device validation: device not found'
+        );
+        return false;
+      }
+      if (String(rec.user_id) !== String(userId)) {
+        logger.info(
+          { userId, deviceId: id, deviceUserId: rec.user_id, reason: 'user_mismatch' },
+          'Trusted device validation: user mismatch'
+        );
+        return false;
+      }
+      if (rec.revoked_at) {
+        logger.info(
+          { userId, deviceId: id, reason: 'revoked' },
+          'Trusted device validation: device revoked'
+        );
+        return false;
+      }
+      if (new Date(rec.expires_at) <= new Date()) {
+        logger.info(
+          { userId, deviceId: id, expiresAt: rec.expires_at, reason: 'expired' },
+          'Trusted device validation: device expired'
+        );
+        return false;
+      }
+      if (sha256(token) !== rec.token_hash) {
+        logger.info(
+          { userId, deviceId: id, reason: 'token_mismatch' },
+          'Trusted device validation: token hash mismatch'
+        );
+        return false;
+      }
 
       const needFp = role === 'admin' || runtimeFlags.trustedDeviceFpEnforceAll;
       if (needFp && rec.fingerprint) {
@@ -134,13 +167,25 @@ export async function validateTrustedCookie(
         }
       }
       void pool.query(`UPDATE trusted_devices SET last_used_at = NOW() WHERE id = ?`, [id]);
+      logger.info(
+        { userId, deviceId: id, role },
+        'Trusted device validation: SUCCESS - bypassing MFA'
+      );
       return true;
     }
 
     const legacy = verifyTrustedDevice(raw);
     if (legacy && legacy.sub === String(userId) && legacy.exp > Date.now()) {
+      logger.info(
+        { userId, reason: 'legacy_token_valid' },
+        'Trusted device validation: using legacy token'
+      );
       return true;
     }
+    logger.info(
+      { userId, reason: 'invalid_format' },
+      'Trusted device validation: invalid cookie format'
+    );
     return false;
   } catch (e) {
     logger.warn({ e, userId }, 'validateTrustedCookie failed');
@@ -150,6 +195,7 @@ export async function validateTrustedCookie(
 
 export async function createTrustedDevice(req: Request, res: Response, userId: string) {
   try {
+    logger.info({ userId, remoteAddress: req.ip }, 'Creating trusted device...');
     const token = crypto.randomBytes(32).toString('base64url');
     const tokenHash = sha256(token);
     const id = ulid();
@@ -166,10 +212,14 @@ export async function createTrustedDevice(req: Request, res: Response, userId: s
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: 'lax',
-      domain: env.COOKIE_DOMAIN || undefined,
+      domain: env.NODE_ENV === 'production' ? env.COOKIE_DOMAIN : undefined,
       expires: exp,
       path: '/',
     });
+    logger.info(
+      { userId, deviceId: id, expiresAt: exp.toISOString() },
+      'Trusted device created successfully'
+    );
   } catch (e) {
     logger.error({ e, userId }, 'Failed to create trusted device');
   }

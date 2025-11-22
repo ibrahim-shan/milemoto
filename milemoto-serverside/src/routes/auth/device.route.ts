@@ -1,11 +1,15 @@
 // src/routes/auth/device.route.ts
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool } from '../../db/pool.js';
 import { requireAuth } from '../../middleware/authz.js';
-import { RowDataPacket } from 'mysql2';
 import type { OkResponseDto } from '@milemoto/types';
 import { env } from '../../config/env.js';
+import {
+  listTrustedDevices,
+  revokeTrustedDevice,
+  untrustCurrentDevice,
+} from '../../services/auth.service.js';
+import { revokeAllTrustedDevices } from './auth.helpers.js';
 
 export const deviceAuth = Router();
 
@@ -14,30 +18,10 @@ deviceAuth.get('/trusted-devices', requireAuth, async (req, res, next) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const userId = String(req.user.id);
-
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT id, user_id, user_agent, ip, created_at, last_used_at, expires_at, revoked_at
-         FROM trusted_devices
-        WHERE user_id = ?
-        ORDER BY created_at DESC`,
-      [userId]
-    );
-
     const cookie = String(req.cookies?.mm_trusted || '');
-    const currentId = cookie.includes('.') ? cookie.split('.')[0] : '';
 
-    const devices = rows.map((d) => ({
-      id: String(d.id),
-      userAgent: d.user_agent as string | null,
-      ip: d.ip as string | null,
-      createdAt: d.created_at ? new Date(d.created_at).toISOString() : null,
-      lastUsedAt: d.last_used_at ? new Date(d.last_used_at).toISOString() : null,
-      expiresAt: d.expires_at ? new Date(d.expires_at).toISOString() : null,
-      revokedAt: d.revoked_at ? new Date(d.revoked_at).toISOString() : null,
-      current: String(d.id) === currentId,
-    }));
-
-    res.json({ items: devices });
+    const devices = await listTrustedDevices(userId, cookie);
+    res.json(devices);
   } catch (e) {
     next(e);
   }
@@ -49,15 +33,9 @@ deviceAuth.post('/trusted-devices/revoke', requireAuth, async (req, res, next) =
     const userId = String(req.user.id);
     const { id } = z.object({ id: z.string().min(10) }).parse(req.body);
 
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT id FROM trusted_devices WHERE id = ? AND user_id = ? AND revoked_at IS NULL LIMIT 1`,
-      [id, userId]
-    );
-    const rec = rows[0];
-    if (!rec) return res.status(404).json({ error: 'Not found' });
+    await revokeTrustedDevice(userId, id);
 
-    await pool.query(`UPDATE trusted_devices SET revoked_at = NOW() WHERE id = ?`, [id]);
-
+    // Clear cookie if it's the current device
     const cookie = String(req.cookies?.mm_trusted || '');
     const currentId = cookie.includes('.') ? cookie.split('.')[0] : '';
     if (currentId === id) {
@@ -79,10 +57,7 @@ deviceAuth.post('/trusted-devices/revoke-all', requireAuth, async (req, res, nex
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const userId = String(req.user.id);
 
-    await pool.query(
-      `UPDATE trusted_devices SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL`,
-      [userId]
-    );
+    await revokeAllTrustedDevices(userId);
 
     if (req.cookies?.mm_trusted) {
       res.clearCookie('mm_trusted', {
@@ -103,13 +78,33 @@ deviceAuth.post('/trusted-devices/untrust-current', requireAuth, async (req, res
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const userId = String(req.user.id);
     const cookie = String(req.cookies?.mm_trusted || '');
-    if (!cookie.includes('.')) return res.status(400).json({ error: 'No trusted device cookie' });
-    const [id] = cookie.split('.');
 
-    await pool.query(`UPDATE trusted_devices SET revoked_at = NOW() WHERE id = ? AND user_id = ?`, [
-      id,
-      userId,
-    ]);
+    // Check if cookie exists
+    if (!cookie) {
+      return res.status(400).json({
+        error: 'NoTrustedDevice',
+        message: 'No trusted device cookie found. This device is not currently trusted.',
+      });
+    }
+
+    if (!cookie.includes('.')) {
+      return res.status(400).json({
+        error: 'InvalidCookie',
+        message: 'Invalid trusted device cookie format',
+      });
+    }
+
+    const parts = cookie.split('.');
+    const id = parts[0];
+    if (!id) {
+      return res.status(400).json({
+        error: 'InvalidCookie',
+        message: 'Invalid device cookie format',
+      });
+    }
+
+    await untrustCurrentDevice(userId, id);
+
     res.clearCookie('mm_trusted', {
       path: '/',
       domain: env.COOKIE_DOMAIN || undefined,

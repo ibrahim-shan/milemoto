@@ -33,6 +33,7 @@ import {
   importStates as persistStatesImport,
   exportCities,
   importCities as persistCitiesImport,
+  listAllCities,
 } from '../../services/location.service.js';
 
 // Create a new router instance for location-related admin endpoints
@@ -164,8 +165,17 @@ locationAdmin.post('/states', async (req, res, next) => {
  */
 locationAdmin.get('/states', async (req, res, next) => {
   try {
-    const query = ListQuery.parse(req.query);
+    // 1. Extend ListQuery with optional filters for the route handler
+    const StateListQuery = ListQuery.extend({
+      countryId: z.coerce.number().int().optional(),
+    });
+
+    // 2. Parse the request query
+    const query = StateListQuery.parse(req.query);
+
+    // 3. Pass all filters (ListQuery + countryId) to the service
     const data = await listStates(query);
+
     res.json(data);
   } catch (e) {
     handleServiceError(e, res, next);
@@ -238,14 +248,47 @@ locationAdmin.post('/cities', async (req, res, next) => {
   }
 });
 
+locationAdmin.get('/cities/all', async (req, res, next) => {
+  try {
+    const stateId = req.query.stateId
+      ? z.coerce.number().int().min(1).parse(req.query.stateId)
+      : undefined;
+    const items = await listAllCities(stateId);
+    res.json({ items });
+  } catch (e) {
+    handleServiceError(e, res, next);
+  }
+});
+
+locationAdmin.get('/cities/all', async (req, res, next) => {
+  try {
+    const stateId = req.query.stateId
+      ? z.coerce.number().int().min(1).parse(req.query.stateId)
+      : undefined;
+    const items = await listAllCities(stateId);
+    res.json({ items });
+  } catch (e) {
+    handleServiceError(e, res, next);
+  }
+});
+
 /**
  * READ: GET /api/v1/admin/locations/cities
  * List cities with pagination and search
  */
 locationAdmin.get('/cities', async (req, res, next) => {
   try {
-    const query = ListQuery.parse(req.query);
+    // 1. Extend ListQuery with optional filters for the route handler
+    const CityListQuery = ListQuery.extend({
+      stateId: z.coerce.number().int().optional(),
+    });
+
+    // 2. Parse the request query
+    const query = CityListQuery.parse(req.query);
+
+    // 3. Pass all filters (ListQuery + stateId) to the service
     const data = await listCities(query);
+
     res.json(data);
   } catch (e) {
     handleServiceError(e, res, next);

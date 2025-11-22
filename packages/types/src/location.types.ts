@@ -77,6 +77,13 @@ export type State = {
   country_status_effective: "active" | "inactive";
 };
 
+export type CityDropdownItem = {
+  id: number;
+  name: string;
+  state_id: number; // Important for filtering by state
+  status?: "active" | "inactive";
+};
+
 export type City = {
   id: number;
   name: string;
@@ -109,6 +116,7 @@ export type CountryDropdownItem = {
 export type StateDropdownItem = {
   id: number;
   name: string;
+  country_id: number;
   status?: "active" | "inactive";
   status_effective?: "active" | "inactive";
 };

@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS taxes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  rate DECIMAL(10, 4) NOT NULL DEFAULT 0.0000,
+  type ENUM('percentage', 'fixed') NOT NULL DEFAULT 'percentage',
+  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  country_code VARCHAR(10) NULL,
+  state_code VARCHAR(10) NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
