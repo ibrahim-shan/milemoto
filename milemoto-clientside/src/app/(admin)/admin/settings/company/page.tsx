@@ -67,7 +67,7 @@ const DEFAULT_VALUES: CompanyProfileInputDto = {
   city: null,
   state: null,
   zip: null,
-  countryId: '',
+  countryId: null,
   latitude: null,
   longitude: null,
 };
@@ -150,7 +150,7 @@ export default function CompanyPage() {
     // Convert the form's string back to a number for the API
     const dataForApi: CompanyProfileInputDto = {
       ...values,
-      countryId: values.countryId ? String(values.countryId) : null,
+      countryId: values.countryId ? Number(values.countryId) : null,
     };
     updateMutation.mutate(dataForApi);
   };

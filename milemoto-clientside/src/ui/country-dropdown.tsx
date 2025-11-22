@@ -1,3 +1,4 @@
+// Updated CountryDropdown component with showCallingCode prop
 'use client';
 
 import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
@@ -42,6 +43,7 @@ interface CountryDropdownProps {
   disabled?: boolean;
   placeholder?: string;
   slim?: boolean;
+  showCallingCode?: boolean; // New prop to control calling code display
 }
 
 const DEFAULT_COUNTRIES: Country[] = (countries.all as Country[]).filter(
@@ -56,35 +58,24 @@ const CountryDropdownComponent = (
     disabled = false,
     placeholder = 'Select a country',
     slim = false,
+    showCallingCode = true, // Default to true for backward compatibility
     ...props
   }: CountryDropdownProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) => {
   const [open, setOpen] = useState(false);
 
-  //
-  // 1. Derive the initial country from props (NO setState here)
-  //
   const derivedDefault = useMemo(() => {
     if (!defaultValue) return undefined;
     return options.find(c => c.alpha3 === defaultValue);
   }, [defaultValue, options]);
 
-  //
-  // 2. Internal selected state (controlled by defaultValue)
-  //
   const [selectedCountry, setSelectedCountry] = useState<Country | undefined>(derivedDefault);
 
-  //
-  // 3. Sync prop changes → state (ALLOWED pattern)
-  //
   useEffect(() => {
     setSelectedCountry(derivedDefault);
   }, [derivedDefault]);
 
-  //
-  // 4. User selects a country
-  //
   const handleSelect = useCallback(
     (country: Country) => {
       setSelectedCountry(country);
@@ -94,9 +85,6 @@ const CountryDropdownComponent = (
     [onChange],
   );
 
-  //
-  // Styling
-  //
   const triggerClasses = cn(
     'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
     slim === true && 'w-20',
@@ -124,7 +112,10 @@ const CountryDropdownComponent = (
 
             {slim === false && (
               <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                {`${selectedCountry.countryCallingCodes?.[0] ?? ''} ${selectedCountry.name}`}
+                {showCallingCode 
+                  ? `${selectedCountry.countryCallingCodes?.[0] ?? ''} ${selectedCountry.name}`
+                  : selectedCountry.name
+                }
               </span>
             )}
           </div>
@@ -141,7 +132,16 @@ const CountryDropdownComponent = (
         className="min-w-[--radix-popper-anchor-width] p-0"
       >
         <Command className="max-h-[200px] w-full sm:max-h-[270px]">
-          <CommandList>
+         <CommandList 
+  style={{ maxHeight: '300px', overflow: 'auto' }}
+  onWheel={(e) => {
+    e.stopPropagation();
+    const { currentTarget } = e;
+    if (currentTarget.scrollHeight > currentTarget.clientHeight) {
+      e.preventDefault();
+    }
+  }}
+>
             <div className="bg-popover sticky top-0 z-10">
               <CommandInput placeholder="Search country..." />
             </div>
@@ -168,7 +168,10 @@ const CountryDropdownComponent = (
                       </div>
 
                       <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                        {`${option.countryCallingCodes?.[0] ?? ''} ${option.name}`}
+                        {showCallingCode
+                          ? `${option.countryCallingCodes?.[0] ?? ''} ${option.name}`
+                          : option.name
+                        }
                       </span>
                     </div>
 

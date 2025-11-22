@@ -11,6 +11,16 @@ import { MoreHorizontal } from 'lucide-react';
 import { Skeleton } from '@/features/feedback/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDeleteCity, useGetCities } from '@/hooks/useLocationQueries';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/alert-dialog';
 import { Button } from '@/ui/Button';
 import {
   DropdownMenu,
@@ -50,10 +60,20 @@ export function CitiesTab() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this city?')) {
-      deleteMutation.mutate(id);
+  const [deleteTarget, setDeleteTarget] = useState<City | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDelete = (item: City) => {
+    setDeleteTarget(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteMutation.mutate(deleteTarget.id);
+      setDeleteTarget(null);
     }
+    setIsDeleteDialogOpen(false);
   };
 
   // --- Render Logic ---
@@ -94,9 +114,7 @@ export function CitiesTab() {
             <TableHead>State</TableHead>
             <TableHead>Country</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>
-              <span className="sr-only">Actions</span>
-            </TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -179,7 +197,7 @@ export function CitiesTab() {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item)}
                           disabled={deleteMutation.isPending}
                           className="text-red-600 focus:text-red-600"
                         >
@@ -201,6 +219,29 @@ export function CitiesTab() {
         pageSize={limit}
         onPageChange={handlePageChange}
       />
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete City?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the city {deleteTarget?.name}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CityDialog
         open={isModalOpen}

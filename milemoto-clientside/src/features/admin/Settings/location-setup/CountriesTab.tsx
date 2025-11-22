@@ -12,6 +12,16 @@ import { MoreHorizontal } from 'lucide-react';
 import { Skeleton } from '@/features/feedback/Skeleton'; // Import Skeleton for loading
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDeleteCountry, useGetCountries } from '@/hooks/useLocationQueries';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/alert-dialog';
 import { Button } from '@/ui/Button';
 import {
   DropdownMenu,
@@ -51,10 +61,20 @@ export function CountriesTab() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this country?')) {
-      deleteMutation.mutate(id);
+  const [deleteTarget, setDeleteTarget] = useState<Country | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDelete = (item: Country) => {
+    setDeleteTarget(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteMutation.mutate(deleteTarget.id);
+      setDeleteTarget(null);
     }
+    setIsDeleteDialogOpen(false);
   };
 
   // --- Render Logic ---
@@ -98,9 +118,7 @@ export function CountriesTab() {
             <TableHead>Country Name</TableHead>
             <TableHead>Country Code</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>
-              <span className="sr-only">Actions</span>
-            </TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -169,7 +187,7 @@ export function CountriesTab() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleOpenEdit(item)}>Edit</DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item)}
                         disabled={deleteMutation.isPending}
                         className="text-red-600 focus:text-red-600"
                       >
@@ -190,6 +208,30 @@ export function CountriesTab() {
         pageSize={limit}
         onPageChange={handlePageChange}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Country?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the country {deleteTarget?.name}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CountryDialog
         open={isModalOpen}

@@ -11,6 +11,16 @@ import { MoreHorizontal } from 'lucide-react';
 import { Skeleton } from '@/features/feedback/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce'; // Assumes you created this
 import { useDeleteState, useGetStates } from '@/hooks/useLocationQueries';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/alert-dialog';
 import { Button } from '@/ui/Button';
 import {
   DropdownMenu,
@@ -50,10 +60,20 @@ export function StatesTab() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this state?')) {
-      deleteMutation.mutate(id);
+  const [deleteTarget, setDeleteTarget] = useState<State | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDelete = (item: State) => {
+    setDeleteTarget(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteMutation.mutate(deleteTarget.id);
+      setDeleteTarget(null);
     }
+    setIsDeleteDialogOpen(false);
   };
 
   // --- Render Logic ---
@@ -93,9 +113,7 @@ export function StatesTab() {
             <TableHead>State Name</TableHead>
             <TableHead>Country</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>
-              <span className="sr-only">Actions</span>
-            </TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -174,7 +192,7 @@ export function StatesTab() {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item)}
                           disabled={deleteMutation.isPending}
                           className="text-red-600 focus:text-red-600"
                         >
@@ -196,6 +214,30 @@ export function StatesTab() {
         pageSize={limit}
         onPageChange={handlePageChange}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete State?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the state {deleteTarget?.name}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <StateDialog
         open={isModalOpen}

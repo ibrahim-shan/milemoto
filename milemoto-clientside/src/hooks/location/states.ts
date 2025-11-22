@@ -20,16 +20,19 @@ import { toast } from 'sonner';
 
 import { authorizedDel, authorizedGet, authorizedPost } from '@/lib/api';
 
-const listStates = (params: LocationListParams) => {
+// FIX: Change type to number to match Zod parsing in backend routes
+type FilteredStateListParams = LocationListParams & { countryId?: number };
+
+const listStates = (params: FilteredStateListParams) => {
   const query = new URLSearchParams({
     search: params.search,
     page: String(params.page),
     limit: String(params.limit),
+    // Pass countryId to backend for filtering.
+    ...(params.countryId && { countryId: String(params.countryId) }),
   });
   return authorizedGet<PaginatedResponse<State>>(`${API_BASE}/states?${query.toString()}`);
 };
-
-const listAllStates = () => authorizedGet<{ items: StateDropdownItem[] }>(`${API_BASE}/states/all`);
 
 const createState = (data: CreateStateOutputDto) =>
   authorizedPost<State>(`${API_BASE}/states`, data);
@@ -44,7 +47,7 @@ type DeleteStateContext = {
   dropdown: DropdownSnapshot<StateDropdownItem>;
 };
 
-export const useGetStates = (params: LocationListParams) =>
+export const useGetStates = (params: FilteredStateListParams) =>
   useQuery({
     queryKey: locationKeys.list('states', params),
     queryFn: () => listStates(params),
@@ -55,7 +58,7 @@ export const useGetStates = (params: LocationListParams) =>
 export const useGetAllStates = () =>
   useQuery({
     queryKey: locationKeys.dropdown('states'),
-    queryFn: listAllStates,
+    queryFn: () => authorizedGet<{ items: StateDropdownItem[] }>('/admin/locations/states/all'),
     staleTime: 1000 * 60 * 5,
   });
 

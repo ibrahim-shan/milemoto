@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 
-import { Image as ImageIcon, MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus } from 'lucide-react';
 
-import { ImageDropzone } from '@/features/admin/components/ImageDropzone';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/Card';
+import { Country, CountryDropdown } from '@/ui/country-dropdown'; // Adjust import path
+
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/ui/dialog';
 import {
   DropdownMenu,
@@ -28,31 +28,31 @@ type Language = {
   name: string;
   code: string;
   displayMode: DisplayMode;
-  flagUrl: string | null;
+  countryCode: string | null; // Changed from flagUrl to countryCode
   status: LanguageStatus;
 };
 
-// DUMMY DATA: Replace this with data from your API
+// DUMMY DATA: Updated to use country codes instead of flag URLs
 const DUMMY_DATA: Language[] = [
   {
     id: '1',
     name: 'English',
     code: 'en',
     displayMode: 'LTR',
-    flagUrl: '/images/flags/us.svg', // Example path
+    countryCode: 'US', // Using country code instead of URL
     status: 'active',
   },
   {
     id: '2',
-    name: 'العربية',
+    name: 'Arabic',
     code: 'ar',
     displayMode: 'RTL',
-    flagUrl: '/images/flags/lb.svg', // Example path
+    countryCode: 'SA', // Using country code instead of URL
     status: 'active',
   },
 ];
 
-// Helper component for the modal's form fields (same as your other pages)
+// Helper component for the modal's form fields
 function FormField({
   id,
   label,
@@ -81,7 +81,7 @@ function FormField({
 function LanguageDialog({
   open,
   onOpenChange,
-  language, // Pass a language object to edit, or null to add
+  language,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,11 +90,11 @@ function LanguageDialog({
   const isEditMode = Boolean(language);
 
   // Form state
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [status, setStatus] = useState<LanguageStatus>('active');
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('LTR');
-  const [flagUrl, setFlagUrl] = useState<string | null>(null);
+  const [name, setName] = useState(language?.name || '');
+  const [code, setCode] = useState(language?.code || '');
+  const [status, setStatus] = useState<LanguageStatus>(language?.status || 'active');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(language?.displayMode || 'LTR');
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,10 +105,16 @@ function LanguageDialog({
         code,
         status,
         displayMode,
-        flagUrl,
+        countryCode: selectedCountry?.alpha2,
       });
     } else {
-      console.log('Adding language:', { name, code, status, displayMode, flagUrl });
+      console.log('Adding language:', {
+        name,
+        code,
+        status,
+        displayMode,
+        countryCode: selectedCountry?.alpha2,
+      });
     }
     onOpenChange(false); // Close modal on save
   };
@@ -136,6 +142,7 @@ function LanguageDialog({
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g., English"
+              required
             />
           </FormField>
           <FormField
@@ -147,6 +154,7 @@ function LanguageDialog({
               value={code}
               onChange={e => setCode(e.target.value)}
               placeholder="e.g., en"
+              required
             />
           </FormField>
           <FormField
@@ -167,14 +175,14 @@ function LanguageDialog({
             </Select>
           </FormField>
           <FormField
-            id="flagUrl"
-            label="Flag Image"
+            id="country"
+            label="Country Flag"
           >
-            <ImageDropzone
-              value={flagUrl}
-              onUpload={setFlagUrl}
-              onRemove={() => setFlagUrl(null)}
-              folder="flags" // Send to a 'flags' folder in Firebase
+            <CountryDropdown
+              showCallingCode={false}
+              onChange={setSelectedCountry}
+              defaultValue={language?.countryCode || ''}
+              placeholder="Select country for flag"
             />
           </FormField>
           <FormField
@@ -258,6 +266,7 @@ export default function LanguagesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Flag</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Display Mode</TableHead>
@@ -271,23 +280,19 @@ export default function LanguagesPage() {
               {languages.map(lang => (
                 <TableRow key={lang.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      {lang.flagUrl ? (
-                        <Image
-                          src={lang.flagUrl}
+                    {lang.countryCode ? (
+                      <div className="h-5 w-5 overflow-hidden rounded-full">
+                        <img
+                          src={`https://flagcdn.com/${lang.countryCode.toLowerCase()}.svg`}
                           alt={lang.name}
-                          width={20}
-                          height={14}
-                          className="rounded-sm border"
+                          className="h-full w-full object-cover"
                         />
-                      ) : (
-                        <span className="flex h-4 w-5 items-center justify-center rounded-sm border">
-                          <ImageIcon className="text-muted-foreground h-3 w-3" />
-                        </span>
-                      )}
-                      <span className="font-medium">{lang.name}</span>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border" />
+                    )}
                   </TableCell>
+                  <TableCell className="font-medium">{lang.name}</TableCell>
                   <TableCell>{lang.code}</TableCell>
                   <TableCell>{lang.displayMode}</TableCell>
                   <TableCell>
@@ -304,7 +309,7 @@ export default function LanguagesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -331,8 +336,6 @@ export default function LanguagesPage() {
           </Table>
         </CardContent>
       </Card>
-
-      {/* The Modal for Add/Edit */}
 
       <LanguageDialog
         key={editingLanguage?.id ?? 'new'}

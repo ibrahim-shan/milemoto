@@ -439,6 +439,7 @@ export function CityDialog({ open, onOpenChange, item }: DialogProps<City>) {
         id: item.state_id,
         name: item.state_name,
         status: item.state_status,
+        country_id: item.country_id,
         status_effective: item.state_status_effective,
       },
       ...states,

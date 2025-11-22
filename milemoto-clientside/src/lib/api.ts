@@ -141,6 +141,29 @@ export const post = <OkResponseDto>(
   return request<OkResponseDto>(path, finalInit);
 };
 
+export const patch = <OkResponseDto>(
+  path: string,
+  body?: unknown,
+  init?: RequestInitWithTimeout,
+) => {
+  let payload: BodyInit | undefined;
+  let headers: HeadersInit | undefined;
+  if (body instanceof FormData) {
+    payload = body;
+  } else if (body !== undefined) {
+    payload = JSON.stringify(body);
+    headers = { 'Content-Type': 'application/json', ...mergeHeaders(init?.headers) };
+  }
+  const baseInit: RequestInitWithTimeout = { ...(init || {}), method: 'PATCH' };
+  const finalHeaders = headers ?? init?.headers;
+  const finalInit: RequestInitWithTimeout = {
+    ...baseInit,
+    ...(payload !== undefined ? { body: payload } : {}),
+    ...(finalHeaders ? { headers: finalHeaders } : {}),
+  };
+  return request<OkResponseDto>(path, finalInit);
+};
+
 export const get = <OkResponseDto>(path: string, init: RequestInitWithTimeout = {}) =>
   request<OkResponseDto>(path, { method: 'GET', ...init });
 
@@ -183,3 +206,9 @@ export const authorizedPut = <OkResponseDto>(
 
 export const authorizedDel = <OkResponseDto>(path: string, init?: RequestInitWithTimeout) =>
   del<OkResponseDto>(path, withAuth(init));
+
+export const authorizedPatch = <OkResponseDto>(
+  path: string,
+  body?: unknown,
+  init?: RequestInitWithTimeout,
+) => patch<OkResponseDto>(path, body, withAuth(init));

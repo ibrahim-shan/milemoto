@@ -28,6 +28,7 @@ export function TrustedDevicesCard() {
   const [loadingDevices, setLoadingDevices] = useState(false);
 
   const activeDevices = useMemo(() => devices.filter(d => !d.revokedAt), [devices]);
+  const hasCurrentDevice = useMemo(() => devices.some(d => d.current && !d.revokedAt), [devices]);
 
   const refreshDevices = async () => {
     setLoadingDevices(true);
@@ -66,6 +67,10 @@ export function TrustedDevicesCard() {
   };
 
   const handleUntrustCurrent = async () => {
+    if (!hasCurrentDevice) {
+      toast.error('This device is not currently trusted');
+      return;
+    }
     try {
       await untrustCurrentDevice();
       toast.success('This device is no longer trusted');
@@ -95,7 +100,8 @@ export function TrustedDevicesCard() {
           <Button
             variant="outline"
             onClick={handleUntrustCurrent}
-            disabled={!devices.some(d => d.current)}
+            disabled={!hasCurrentDevice}
+            title={!hasCurrentDevice ? 'This device is not currently trusted' : undefined}
           >
             Untrust current
           </Button>

@@ -6,17 +6,27 @@ import {
   type LocationListParams,
   type PaginatedSnapshot,
 } from './shared';
-import type { City, CreateCityOutputDto, PaginatedResponse, UpdateCityDto } from '@milemoto/types';
+import type {
+  City,
+  CityDropdownItem,
+  CreateCityOutputDto,
+  PaginatedResponse,
+  UpdateCityDto,
+} from '@milemoto/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { authorizedDel, authorizedGet, authorizedPost } from '@/lib/api';
 
-const listCities = (params: LocationListParams) => {
+// FIX: Change type to number to match Zod parsing in backend routes
+type FilteredCityListParams = LocationListParams & { stateId?: number };
+
+const listCities = (params: FilteredCityListParams) => {
   const query = new URLSearchParams({
     search: params.search,
     page: String(params.page),
-    limit: String(params.limit),
+    limit: String(params.limit), // Pass stateId to backend for filtering.
+    ...(params.stateId && { stateId: String(params.stateId) }),
   });
   return authorizedGet<PaginatedResponse<City>>(`${API_BASE}/cities?${query.toString()}`);
 };
@@ -32,12 +42,19 @@ type DeleteCityContext = {
   paginated: PaginatedSnapshot<City>;
 };
 
-export const useGetCities = (params: LocationListParams) =>
+export const useGetCities = (params: FilteredCityListParams) =>
   useQuery({
     queryKey: locationKeys.list('cities', params),
     queryFn: () => listCities(params),
     placeholderData: previousData => previousData,
     retry: false,
+  });
+
+export const useGetAllCities = () =>
+  useQuery({
+    queryKey: locationKeys.dropdown('cities'),
+    queryFn: () => authorizedGet<{ items: CityDropdownItem[] }>('/admin/locations/cities/all'),
+    staleTime: 1000 * 60 * 5,
   });
 
 export const useCreateCity = () => {
@@ -61,7 +78,13 @@ export const useCreateCity = () => {
       return await promise;
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: locationKeys.lists(), type: 'active' }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: locationKeys.lists(), type: 'active' }),
+        queryClient.invalidateQueries({
+          queryKey: locationKeys.dropdown('cities'),
+          type: 'active',
+        }),
+      ]),
   });
 };
 
